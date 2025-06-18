@@ -25,7 +25,7 @@ export default function CalculatorPage({ params }) {
                     </p>
                 </div>
 
-                <Calculator calculator={calculator} />
+                <Calculator categoryId={categoryId} calculatorId={calculatorId} />
             </div>
         </div>
     );
