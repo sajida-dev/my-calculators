@@ -13,7 +13,6 @@ export default function Portal({ children }) {
 
     return mounted && ref.current ? createPortal(
         <div>
-            <button onClick={() => alert('Portal button clicked!')}>Test Portal Button</button>
             {children}
         </div>,
         ref.current
