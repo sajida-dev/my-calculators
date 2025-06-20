@@ -11,7 +11,7 @@ export default function SecondaryNav() {
     if (pathname === '/') return null;
 
     return (
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 border-b border-blue-900 shadow-md">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <nav className="flex space-x-8 overflow-x-auto py-4">
                     {calculatorCategories.map((category) => {
@@ -21,15 +21,15 @@ export default function SecondaryNav() {
                                 key={category.id}
                                 href={`/categories/${encodeURIComponent(category.id)}`}
                                 className={`
-                                    whitespace-nowrap px-1 py-2 text-sm font-medium
+                                    whitespace-nowrap px-1 py-2 text-sm font-medium transition-colors duration-300 border-b-2
                                     ${isActive
-                                        ? 'text-blue-900 border-b-2 border-blue-900'
-                                        : 'text-gray-600 hover:text-blue-900 hover:border-b-2 hover:border-blue-900'
+                                        ? 'text-blue-100 border-blue-200 drop-shadow-[0_0_10px_rgba(191,219,254,0.8)] shadow-blue-200/80'
+                                        : 'text-blue-200 border-transparent hover:text-white hover:border-white'
                                     }
                                 `}
                             >
                                 {category.name}
-                                <span className="ml-2 text-xs font-medium text-gray-500">
+                                <span className="ml-2 text-xs font-medium text-blue-200">
                                     ({category.calculators.length})
                                 </span>
                             </Link>

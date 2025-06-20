@@ -6,8 +6,8 @@ export default function CategoryCard({ category, Icon }) {
             href={`/categories/${encodeURIComponent(category.id)}`}
             className="group relative bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
         >
-            {/* Top border with navy blue glow */}
-            <div className="h-1 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 shadow-lg shadow-blue-900/20"></div>
+            <span className="pointer-events-none absolute left-0 top-0 h-1 w-full bg-blue-900 z-10" />
+            <span className="pointer-events-none absolute left-0 top-0 h-1 w-0 bg-white transition-all duration-500 group-hover:w-full z-20" />
 
             <div className="p-6 flex flex-col flex-grow">
                 <div className="flex items-center mb-4">

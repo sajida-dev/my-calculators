@@ -16,7 +16,10 @@ export default function Footer() {
     };
 
     return (
-        <footer className="bg-gradient-to-b from-white to-blue-50 border-t border-gray-200">
+        <footer className="group relative bg-gradient-to-b from-white to-blue-50 border-t-0">
+            {/* Solid dark blue top border, with white overlay animating left to right on hover */}
+            <span className="pointer-events-none absolute left-0 top-0 h-1 w-full bg-blue-900 z-10" />
+            <span className="pointer-events-none absolute left-0 top-0 h-1 w-0 bg-white transition-all duration-500 group-hover:w-full z-20" />
             <div className="container mx-auto px-4 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                     {/* About Section */}

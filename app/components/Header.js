@@ -68,8 +68,8 @@ export default function Header() {
                             </Link>
                         </nav>
 
-                        {/* Search */}
-                        <div className="flex-1 max-w-lg mx-4">
+                        {/* Search (desktop only) */}
+                        <div className="hidden md:block relative max-w-xs w-full mx-4">
                             <SearchSuggestions className="w-full" placeholder="Search calculators..." />
                         </div>
 

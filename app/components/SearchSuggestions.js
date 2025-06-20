@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { calculatorCategories } from '@/app/data/calculators';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import Portal from './Portal';
 
 export default function SearchSuggestions({ className = '', placeholder = 'Search calculators...' }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
+    const inputRef = useRef(null);
 
     // Get all calculators from all categories
     const allCalculators = calculatorCategories.flatMap(category =>
@@ -19,6 +21,21 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
             categoryId: category.id
         }))
     );
+
+    // Calculate dropdown position
+    const [dropdownStyle, setDropdownStyle] = useState({});
+    useEffect(() => {
+        if (showSuggestions && inputRef.current) {
+            const rect = inputRef.current.getBoundingClientRect();
+            setDropdownStyle({
+                position: 'absolute',
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width,
+                zIndex: 9999
+            });
+        }
+    }, [showSuggestions]);
 
     useEffect(() => {
         // Close suggestions when clicking outside
@@ -59,6 +76,7 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
                     <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
                 <input
+                    ref={inputRef}
                     type="text"
                     value={searchTerm}
                     onChange={(e) => handleSearch(e.target.value)}
@@ -82,27 +100,28 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
 
             {/* Suggestions Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto">
-                    {suggestions.map((calculator) => (
-                        <Link
-                            key={`${calculator.categoryId}-${calculator.id}`}
-                            href={`/categories/${calculator.categoryId}/${calculator.id}`}
-                            onClick={() => handleSuggestionClick(calculator)}
-                        >
-                            <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h4 className="text-sm font-medium text-gray-900">{calculator.name}</h4>
-                                        <p className="text-xs text-gray-500 mt-1">{calculator.description}</p>
+                <Portal>
+                    <div style={dropdownStyle} className="bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto">
+                        {suggestions.map((calculator) => (
+                            <Link
+                                key={`${calculator.categoryId}-${calculator.id}`}
+                                href={`/categories/${calculator.categoryId}/${calculator.id}`}
+                                onClick={() => handleSuggestionClick(calculator)}
+                            >
+                                <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150">
+                                    <div className="flex items-center justify-between">
+                                        <div className='text-left'>
+                                            <h4 className="text-sm font-medium text-gray-900">{calculator.name}</h4>
+                                        </div>
+                                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                            {calculator.categoryName}
+                                        </span>
                                     </div>
-                                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                        {calculator.categoryName}
-                                    </span>
                                 </div>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </Portal>
             )}
 
             {/* No Results */}

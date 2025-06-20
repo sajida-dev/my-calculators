@@ -29,7 +29,7 @@ export default function CategoriesPage() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-1 lg:grid-cols-2">
                     {calculatorCategories.map((category) => {
                         const Icon = iconMap[category.icon];
                         return (

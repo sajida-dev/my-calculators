@@ -42,6 +42,8 @@ export const calculatorCategories = [
                 name: 'Car Payoff Calculator',
                 description: 'Calculate your car loan payoff amount and schedule',
                 icon: 'TruckIcon',
+                supportsGraph: true,
+                supportsTable: true,
                 inputs: [
                     { id: 'loanAmount', label: 'Loan Amount ($)', type: 'number', required: true },
                     { id: 'interestRate', label: 'Interest Rate (%)', type: 'number', required: true },
@@ -50,9 +52,33 @@ export const calculatorCategories = [
                 calculate: (inputs) => {
                     const { loanAmount, interestRate, loanTerm } = inputs;
                     const monthlyRate = interestRate / 100 / 12;
-                    const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, loanTerm * 12)) /
-                        (Math.pow(1 + monthlyRate, loanTerm * 12) - 1);
-                    return `Monthly Payment: $${monthlyPayment.toFixed(2)}`;
+                    const n = loanTerm * 12;
+                    const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, n)) /
+                        (Math.pow(1 + monthlyRate, n) - 1);
+
+                    // Amortization table
+                    let balance = loanAmount;
+                    const tableData = [];
+                    const graphData = [];
+                    for (let i = 1; i <= n; i++) {
+                        const interest = balance * monthlyRate;
+                        const principal = monthlyPayment - interest;
+                        balance -= principal;
+                        tableData.push({
+                            month: i,
+                            payment: monthlyPayment,
+                            principal: principal,
+                            interest: interest,
+                            balance: Math.max(balance, 0)
+                        });
+                        graphData.push({ month: i, balance: Math.max(balance, 0) });
+                    }
+
+                    return {
+                        mainText: `Monthly Payment: $${monthlyPayment.toFixed(2)}`,
+                        graphData,
+                        tableData
+                    };
                 }
             },
             {
@@ -100,6 +126,8 @@ export const calculatorCategories = [
                 name: 'Future Value Calculator',
                 description: 'Calculate the future value of investments',
                 icon: 'ChartPieIcon',
+                supportsGraph: true,
+                supportsTable: true,
                 inputs: [
                     { id: 'presentValue', label: 'Present Value ($)', type: 'number', required: true },
                     { id: 'futureInterestRate', label: 'Interest Rate (%)', type: 'number', required: true },
@@ -108,7 +136,16 @@ export const calculatorCategories = [
                 calculate: (inputs) => {
                     const { presentValue, futureInterestRate, futureYears } = inputs;
                     const futureValue = presentValue * Math.pow(1 + futureInterestRate / 100, futureYears);
-                    return `Future Value: $${futureValue.toFixed(2)}`;
+                    const graphData = Array.from({ length: futureYears + 1 }, (_, year) => ({
+                        year,
+                        value: presentValue * Math.pow(1 + futureInterestRate / 100, year)
+                    }));
+                    const tableData = graphData;
+                    return {
+                        mainText: `Future Value: $${futureValue.toFixed(2)}`,
+                        graphData,
+                        tableData
+                    };
                 }
             },
             {

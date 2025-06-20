@@ -14,18 +14,18 @@ export default function CategoryPage({ params }) {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex flex-col items-center text-center mb-4">
                     {CategoryIcon && (
-                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-                            <CategoryIcon className="h-6 w-6 text-blue-600" />
+                        <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                            <CategoryIcon className="h-10 w-10 text-blue-600" />
                         </div>
                     )}
-                    <h1 className="text-3xl font-bold text-gray-900">{category.name}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{category.name}</h1>
+                    <p className="text-gray-600">{category.description}</p>
                 </div>
-                <p className="text-gray-600">{category.description}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
                 {category.calculators.map((calculator) => {
                     const CalculatorIcon = iconMap[calculator.icon];
                     return (

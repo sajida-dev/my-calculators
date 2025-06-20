@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import SearchSuggestions from './components/SearchSuggestions';
 import CategoryCard from './components/CategoryCard';
+import RecommendationSidebar from './components/RecommendationSidebar';
 
 const iconMap = {
   'AcademicCapIcon': AcademicCapIcon,
@@ -20,29 +21,12 @@ const iconMap = {
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-white">
-        <div className="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-              Your All-in-One Calculator Hub
-            </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-500">
-              Access a wide range of calculators for education, finance, health, and more.
-            </p>
-            <div className="mt-8 max-w-xl mx-auto">
-              <SearchSuggestions
-                className="w-full"
-                placeholder="Search for calculators..."
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Categories Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-8 text-center ">
+          <h2 className="text-2xl font-bold text-blue-900 mb-2 ">Explore All Calculator Categories</h2>
+          <p className="text-gray-600  max-w-2xl mx-auto lg:mx-0">Find the perfect calculator for your needs—finance, health, math, and more. Browse by category below.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-2">
           {calculatorCategories.map((category) => {
             const Icon = iconMap[category.icon];
             return (

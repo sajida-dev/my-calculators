@@ -1,13 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { calculatorCategories } from '@/app/data/calculators';
+import GraphComponent from './GraphComponent';
+import TableComponent from './TableComponent';
 
 export default function Calculator({ categoryId, calculatorId }) {
     const category = calculatorCategories.find(cat => cat.id === categoryId);
     const calculator = category?.calculators.find(calc => calc.id === calculatorId);
     const [inputs, setInputs] = useState({});
     const [result, setResult] = useState(null);
+
+    useEffect(() => {
+        if (calculatorId) {
+            const key = `calc-usage-${calculatorId}`;
+            const count = parseInt(localStorage.getItem(key) || '0', 10) + 1;
+            localStorage.setItem(key, count);
+        }
+    }, [calculatorId]);
 
     if (!calculator) {
         return <div>Calculator not found</div>;
@@ -23,6 +33,9 @@ export default function Calculator({ categoryId, calculatorId }) {
     const calculateResult = () => {
         // Use the calculate function from the data if it exists
         if (calculator.calculate) {
+            const loanAmount = Number(inputs.loanAmount);
+            const interestRate = Number(inputs.interestRate);
+            const loanTerm = Number(inputs.loanTerm);
             return calculator.calculate(inputs);
         }
 
@@ -34,7 +47,11 @@ export default function Calculator({ categoryId, calculatorId }) {
                 const monthlyRate = interestRate / 100 / 12;
                 const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, loanTerm * 12)) /
                     (Math.pow(1 + monthlyRate, loanTerm * 12) - 1);
-                return `Monthly Payment: $${monthlyPayment.toFixed(2)}`;
+                return {
+                    mainText: `Monthly Payment: $${monthlyPayment.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'land-loan':
                 const { landPrice, downPayment, landInterestRate, landTerm } = inputs;
@@ -42,7 +59,11 @@ export default function Calculator({ categoryId, calculatorId }) {
                 const landMonthlyRate = landInterestRate / 100 / 12;
                 const landMonthlyPayment = (landLoanAmount * landMonthlyRate * Math.pow(1 + landMonthlyRate, landTerm * 12)) /
                     (Math.pow(1 + landMonthlyRate, landTerm * 12) - 1);
-                return `Monthly Payment: $${landMonthlyPayment.toFixed(2)}`;
+                return {
+                    mainText: `Monthly Payment: $${landMonthlyPayment.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'mobile-home-loan':
                 const { homePrice, homeDownPayment, homeInterestRate, homeTerm } = inputs;
@@ -50,39 +71,67 @@ export default function Calculator({ categoryId, calculatorId }) {
                 const homeMonthlyRate = homeInterestRate / 100 / 12;
                 const homeMonthlyPayment = (homeLoanAmount * homeMonthlyRate * Math.pow(1 + homeMonthlyRate, homeTerm * 12)) /
                     (Math.pow(1 + homeMonthlyRate, homeTerm * 12) - 1);
-                return `Monthly Payment: $${homeMonthlyPayment.toFixed(2)}`;
+                return {
+                    mainText: `Monthly Payment: $${homeMonthlyPayment.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'future-value':
                 const { presentValue, futureInterestRate, futureYears } = inputs;
                 const futureValue = presentValue * Math.pow(1 + futureInterestRate / 100, futureYears);
-                return `Future Value: $${futureValue.toFixed(2)}`;
+                return {
+                    mainText: `Future Value: $${futureValue.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'copart-fee':
                 const { bidAmount, buyerFee, gatePass } = inputs;
                 const totalFee = Number(bidAmount) + Number(buyerFee) + Number(gatePass);
-                return `Total Cost: $${totalFee.toFixed(2)}`;
+                return {
+                    mainText: `Total Cost: $${totalFee.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'cash-back':
                 const { purchaseAmount, cashBackRate } = inputs;
                 const cashBack = purchaseAmount * (cashBackRate / 100);
-                return `Cash Back Amount: $${cashBack.toFixed(2)}`;
+                return {
+                    mainText: `Cash Back Amount: $${cashBack.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             // Health & Fitness Calculators
             case 'homa-ir':
                 const { fastingGlucose, fastingInsulin } = inputs;
                 const homaIR = (fastingGlucose * fastingInsulin) / 405;
-                return `HOMA-IR Score: ${homaIR.toFixed(2)}`;
+                return {
+                    mainText: `HOMA-IR Score: ${homaIR.toFixed(2)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'free-water-deficit':
                 const { waterWeight, sodium } = inputs;
                 const waterDeficit = waterWeight * 0.6 * (1 - (140 / sodium));
-                return `Free Water Deficit: ${waterDeficit.toFixed(2)} L`;
+                return {
+                    mainText: `Free Water Deficit: ${waterDeficit.toFixed(2)} L`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'biking-calorie':
             case 'bicycle-calorie':
                 const { duration, bikeWeight, intensity } = inputs;
                 const calories = duration * bikeWeight * intensity * 0.0175;
-                return `Calories Burned: ${calories.toFixed(0)} kcal`;
+                return {
+                    mainText: `Calories Burned: ${calories.toFixed(0)} kcal`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'starbucks-calorie':
                 const { drinkSize, drinkType } = inputs;
@@ -91,64 +140,108 @@ export default function Calculator({ categoryId, calculatorId }) {
                     'grande': { 'latte': 190, 'cappuccino': 150, 'americano': 15 },
                     'venti': { 'latte': 250, 'cappuccino': 190, 'americano': 20 }
                 };
-                return `Calories: ${calorieMap[drinkSize][drinkType]} kcal`;
+                return {
+                    mainText: `Calories: ${calorieMap[drinkSize][drinkType]} kcal`,
+                    graphData: null,
+                    tableData: null
+                };
 
             // Math Calculators
             case 'quadrilateral-area':
                 const { length, width } = inputs;
                 const quadArea = length * width;
-                return `Area: ${quadArea.toFixed(2)} square units`;
+                return {
+                    mainText: `Area: ${quadArea.toFixed(2)} square units`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'yard-area':
                 const { yardLength, yardWidth } = inputs;
                 const yardArea = yardLength * yardWidth;
-                return `Yard Area: ${yardArea.toFixed(2)} square feet`;
+                return {
+                    mainText: `Yard Area: ${yardArea.toFixed(2)} square feet`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'power-weight-ratio':
                 const { power, powerWeight } = inputs;
                 const ratio = power / powerWeight;
-                return `Power to Weight Ratio: ${ratio.toFixed(2)} W/kg`;
+                return {
+                    mainText: `Power to Weight Ratio: ${ratio.toFixed(2)} W/kg`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'playback-speed':
                 const { originalDuration, playbackSpeed } = inputs;
                 const newDuration = originalDuration / playbackSpeed;
-                return `New Duration: ${newDuration.toFixed(2)} minutes`;
+                return {
+                    mainText: `New Duration: ${newDuration.toFixed(2)} minutes`,
+                    graphData: null,
+                    tableData: null
+                };
 
             // Everyday Life Calculators
             case 'ap-score':
                 const { mcScore, frqScore } = inputs;
                 const apScore = (mcScore * 0.6) + (frqScore * 0.4);
-                return `AP Score: ${apScore.toFixed(1)}`;
+                return {
+                    mainText: `AP Score: ${apScore.toFixed(1)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'infinite-campus-grade':
                 const { assignments, weights } = inputs;
                 const weightedGrade = assignments.reduce((acc, curr, i) => acc + (curr * weights[i]), 0) /
                     weights.reduce((a, b) => a + b, 0);
-                return `Final Grade: ${weightedGrade.toFixed(2)}%`;
+                return {
+                    mainText: `Final Grade: ${weightedGrade.toFixed(2)}%`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'anniversary':
                 const { startDate } = inputs;
                 const today = new Date();
                 const anniversary = new Date(startDate);
                 const anniversaryYears = today.getFullYear() - anniversary.getFullYear();
-                return `Years Together: ${anniversaryYears} years`;
+                return {
+                    mainText: `Years Together: ${anniversaryYears} years`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'half-birthday':
                 const { birthDate } = inputs;
                 const halfBirthday = new Date(birthDate);
                 halfBirthday.setMonth(halfBirthday.getMonth() + 6);
-                return `Half Birthday: ${halfBirthday.toLocaleDateString()}`;
+                return {
+                    mainText: `Half Birthday: ${halfBirthday.toLocaleDateString()}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'snowday':
                 const { temperature, precipitation, windSpeed } = inputs;
                 const snowProbability = (temperature < 32 && precipitation > 0.1) ?
                     Math.min(100, (32 - temperature) * 10 + (precipitation * 50) + (windSpeed * 5)) : 0;
-                return `Snow Day Probability: ${snowProbability.toFixed(1)}%`;
+                return {
+                    mainText: `Snow Day Probability: ${snowProbability.toFixed(1)}%`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'heater-btu':
                 const { roomSize, insulation, climate } = inputs;
                 const btu = roomSize * 20 * (insulation === 'good' ? 0.8 : 1) * (climate === 'cold' ? 1.2 : 1);
-                return `Required BTU: ${btu.toFixed(0)}`;
+                return {
+                    mainText: `Required BTU: ${btu.toFixed(0)}`,
+                    graphData: null,
+                    tableData: null
+                };
 
             // Other Calculators
             case 'blox-fruits-trade':
@@ -159,19 +252,35 @@ export default function Calculator({ categoryId, calculatorId }) {
                     'mammoth': 2500000
                 };
                 const tradeValue = Math.abs(fruitValues[fruit1] - fruitValues[fruit2]);
-                return `Trade Value Difference: ${tradeValue.toLocaleString()} Beli`;
+                return {
+                    mainText: `Trade Value Difference: ${tradeValue.toLocaleString()} Beli`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'horse-color':
                 const { baseColor, pattern } = inputs;
-                return `Horse Color: ${baseColor} with ${pattern} pattern`;
+                return {
+                    mainText: `Horse Color: ${baseColor} with ${pattern} pattern`,
+                    graphData: null,
+                    tableData: null
+                };
 
             case 'asphalt':
                 const { asphaltArea, thickness } = inputs;
                 const asphaltNeeded = asphaltArea * thickness * 145; // 145 lbs per cubic foot
-                return `Asphalt Needed: ${asphaltNeeded.toFixed(0)} lbs`;
+                return {
+                    mainText: `Asphalt Needed: ${asphaltNeeded.toFixed(0)} lbs`,
+                    graphData: null,
+                    tableData: null
+                };
 
             default:
-                return 'Calculation not implemented';
+                return {
+                    mainText: 'Calculation not implemented',
+                    graphData: null,
+                    tableData: null
+                };
         }
     };
 
@@ -252,7 +361,15 @@ export default function Calculator({ categoryId, calculatorId }) {
                     {result !== null && (
                         <div className="mt-8 p-4 bg-blue-50 rounded-md">
                             <h2 className="text-lg font-semibold text-blue-900 mb-2">Result</h2>
-                            <p className="text-blue-800 text-xl">{result}</p>
+                            <p className="text-blue-800 text-xl">{result.mainText || result}</p>
+
+                            {calculator.supportsGraph && result.graphData && (
+                                <GraphComponent data={result.graphData} />
+                            )}
+
+                            {calculator.supportsTable && result.tableData && (
+                                <TableComponent data={result.tableData} />
+                            )}
                         </div>
                     )}
                 </div>
