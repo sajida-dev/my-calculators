@@ -40,111 +40,383 @@ export const calculatorCategories = [
             {
                 id: 'car-payoff',
                 name: 'Car Payoff Calculator',
-                description: 'Calculate your car loan payoff amount and schedule',
+                description: 'Calculate your car loan payoff amount, schedule, and total costs including taxes and fees',
                 icon: 'TruckIcon',
                 supportsGraph: true,
                 supportsTable: true,
                 inputs: [
-                    { id: 'loanAmount', label: 'Loan Amount ($)', type: 'number', required: true },
+                    { id: 'mode', label: 'Calculation Mode', type: 'select', options: ['Total Price', 'Monthly Payment'], required: true, default: 'Monthly Payment' },
+                    { id: 'autoPrice', label: 'Auto Price ($)', type: 'number', required: false },
+                    { id: 'monthlyPay', label: 'Monthly Pay ($)', type: 'number', required: false },
+                    { id: 'loanTerm', label: 'Loan Term (months)', type: 'number', required: true },
                     { id: 'interestRate', label: 'Interest Rate (%)', type: 'number', required: true },
-                    { id: 'loanTerm', label: 'Loan Term (years)', type: 'number', required: true }
+                    { id: 'cashIncentives', label: 'Cash Incentives ($)', type: 'number', required: false },
+                    { id: 'downPayment', label: 'Down Payment ($)', type: 'number', required: false },
+                    { id: 'tradeIn', label: 'Trade-in Value ($)', type: 'number', required: false },
+                    { id: 'tradeInOwed', label: 'Amount Owed on Trade-in ($)', type: 'number', required: false },
+                    {
+                        id: 'state', label: 'Your State', type: 'select', options: [
+                            '-- Select --', 'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+                        ], required: false
+                    },
+                    { id: 'salesTax', label: 'Sales Tax (%)', type: 'number', required: false },
+                    { id: 'fees', label: 'Title, Registration, and Other Fees ($)', type: 'number', required: false },
+                    { id: 'includeTaxesFees', label: 'Include taxes and fees in loan', type: 'checkbox', required: false }
                 ],
                 calculate: (inputs) => {
-                    const { loanAmount, interestRate, loanTerm } = inputs;
-                    const monthlyRate = interestRate / 100 / 12;
-                    const n = loanTerm * 12;
-                    const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, n)) /
-                        (Math.pow(1 + monthlyRate, n) - 1);
+                    // Extract and parse all relevant fields
+                    const mode = inputs.mode || 'Monthly Payment';
+                    const autoPrice = Number(inputs.autoPrice) || 0;
+                    const monthlyPay = Number(inputs.monthlyPay) || 0;
+                    const loanTerm = Number(inputs.loanTerm) || 0;
+                    const interestRate = Number(inputs.interestRate) || 0;
+                    const cashIncentives = Number(inputs.cashIncentives) || 0;
+                    const downPayment = Number(inputs.downPayment) || 0;
+                    const tradeIn = Number(inputs.tradeIn) || 0;
+                    const tradeInOwed = Number(inputs.tradeInOwed) || 0;
+                    const salesTax = Number(inputs.salesTax) || 0;
+                    const fees = Number(inputs.fees) || 0;
+                    const includeTaxesFees = !!inputs.includeTaxesFees;
 
-                    // Amortization table
-                    let balance = loanAmount;
-                    const tableData = [];
-                    const graphData = [];
-                    for (let i = 1; i <= n; i++) {
-                        const interest = balance * monthlyRate;
-                        const principal = monthlyPayment - interest;
-                        balance -= principal;
-                        tableData.push({
-                            month: i,
-                            payment: monthlyPayment,
-                            principal: principal,
-                            interest: interest,
-                            balance: Math.max(balance, 0)
-                        });
-                        graphData.push({ month: i, balance: Math.max(balance, 0) });
+                    // Calculate net trade-in value
+                    const netTradeIn = tradeIn - tradeInOwed;
+
+                    // Calculate taxable amount
+                    const taxableAmount = autoPrice - netTradeIn - cashIncentives;
+                    const taxAmount = salesTax > 0 ? taxableAmount * (salesTax / 100) : 0;
+
+                    // Amount to finance
+                    let amountFinanced = 0;
+                    if (includeTaxesFees) {
+                        amountFinanced = autoPrice - netTradeIn - cashIncentives - downPayment + taxAmount + fees;
+                    } else {
+                        amountFinanced = autoPrice - netTradeIn - cashIncentives - downPayment;
+                    }
+
+                    // Monthly interest rate and number of payments
+                    const monthlyRate = interestRate / 100 / 12;
+                    const n = loanTerm;
+
+                    let resultSummary = '';
+                    let monthlyPayment = 0;
+                    let maxAutoPrice = 0;
+                    let tableData = [];
+                    let graphData = [];
+                    let totalInterest = 0;
+                    let totalPayment = 0;
+
+                    if (mode === 'Total Price') {
+                        // Calculate monthly payment from total price
+                        if (monthlyRate > 0) {
+                            monthlyPayment = (amountFinanced * monthlyRate * Math.pow(1 + monthlyRate, n)) /
+                                (Math.pow(1 + monthlyRate, n) - 1);
+                        } else {
+                            monthlyPayment = amountFinanced / n;
+                        }
+                        // Amortization table
+                        let balance = amountFinanced;
+                        for (let i = 1; i <= n; i++) {
+                            const interest = balance * monthlyRate;
+                            const principal = monthlyPayment - interest;
+                            balance -= principal;
+                            totalInterest += interest;
+                            totalPayment += monthlyPayment;
+                            tableData.push({
+                                month: i,
+                                payment: monthlyPayment,
+                                principal: principal,
+                                interest: interest,
+                                balance: Math.max(balance, 0)
+                            });
+                            graphData.push({ month: i, balance: Math.max(balance, 0) });
+                        }
+                        resultSummary = `Monthly Payment: $${monthlyPayment.toFixed(2)} | Total Interest: $${totalInterest.toFixed(2)} | Total Payment: $${totalPayment.toFixed(2)}`;
+                    } else if (mode === 'Monthly Payment') {
+                        // Calculate max auto price from monthly payment
+                        if (monthlyRate > 0) {
+                            amountFinanced = monthlyPay * (1 - Math.pow(1 + monthlyRate, -n)) / monthlyRate;
+                        } else {
+                            amountFinanced = monthlyPay * n;
+                        }
+                        // Reverse-calculate auto price
+                        let autoPriceCalc = amountFinanced + netTradeIn + cashIncentives + downPayment;
+                        if (includeTaxesFees) {
+                            autoPriceCalc -= (taxAmount + fees);
+                        }
+                        maxAutoPrice = autoPriceCalc;
+                        // Amortization table
+                        let balance = amountFinanced;
+                        for (let i = 1; i <= n; i++) {
+                            const interest = balance * monthlyRate;
+                            const principal = monthlyPay - interest;
+                            balance -= principal;
+                            totalInterest += interest;
+                            totalPayment += monthlyPay;
+                            tableData.push({
+                                month: i,
+                                payment: monthlyPay,
+                                principal: principal,
+                                interest: interest,
+                                balance: Math.max(balance, 0)
+                            });
+                            graphData.push({ month: i, balance: Math.max(balance, 0) });
+                        }
+                        resultSummary = `Maximum Auto Price: $${maxAutoPrice.toFixed(2)} | Total Interest: $${totalInterest.toFixed(2)} | Total Payment: $${totalPayment.toFixed(2)}`;
+                    } else {
+                        resultSummary = 'Calculation not implemented';
                     }
 
                     return {
-                        mainText: `Monthly Payment: $${monthlyPayment.toFixed(2)}`,
-                        graphData,
-                        tableData
+                        mainText: resultSummary,
+                        tableData,
+                        graphData
                     };
                 }
             },
             {
                 id: 'land-loan',
                 name: 'Land Loan Calculator',
-                description: 'Calculate land loan payments and interest',
+                description: 'Calculate land loan payments, interest, and payoff schedule',
                 icon: 'HomeIcon',
+                supportsGraph: true,
+                supportsTable: true,
                 inputs: [
                     { id: 'landPrice', label: 'Land Price ($)', type: 'number', required: true },
-                    { id: 'downPayment', label: 'Down Payment ($)', type: 'number', required: true },
-                    { id: 'landInterestRate', label: 'Interest Rate (%)', type: 'number', required: true },
-                    { id: 'landTerm', label: 'Loan Term (years)', type: 'number', required: true }
+                    { id: 'downPayment', label: 'Down Payment ($)', type: 'number', required: false },
+                    { id: 'loanTerm', label: 'Loan Term (years)', type: 'number', required: true },
+                    { id: 'interestRate', label: 'Interest Rate (% APR)', type: 'number', required: true },
+                    { id: 'compounding', label: 'Compounding Frequency', type: 'select', options: ['Monthly', 'Quarterly', 'Annually'], required: false, default: 'Monthly' },
+                    { id: 'paymentFrequency', label: 'Payment Frequency', type: 'select', options: ['Monthly', 'Quarterly', 'Annually'], required: false, default: 'Monthly' },
+                    { id: 'fees', label: 'Title, Registration, and Other Fees ($)', type: 'number', required: false },
+                    { id: 'salesTax', label: 'Sales Tax (%)', type: 'number', required: false },
+                    { id: 'includeTaxesFees', label: 'Include taxes and fees in loan', type: 'checkbox', required: false }
                 ],
                 calculate: (inputs) => {
-                    const { landPrice, downPayment, landInterestRate, landTerm } = inputs;
-                    const landLoanAmount = landPrice - downPayment;
-                    const landMonthlyRate = landInterestRate / 100 / 12;
-                    const landMonthlyPayment = (landLoanAmount * landMonthlyRate * Math.pow(1 + landMonthlyRate, landTerm * 12)) /
-                        (Math.pow(1 + landMonthlyRate, landTerm * 12) - 1);
-                    return `Monthly Payment: $${landMonthlyPayment.toFixed(2)}`;
+                    const landPrice = Number(inputs.landPrice) || 0;
+                    const downPayment = Number(inputs.downPayment) || 0;
+                    const loanTermYears = Number(inputs.loanTerm) || 0;
+                    const interestRate = Number(inputs.interestRate) || 0;
+                    const compounding = inputs.compounding || 'Monthly';
+                    const paymentFrequency = inputs.paymentFrequency || 'Monthly';
+                    const fees = Number(inputs.fees) || 0;
+                    const salesTax = Number(inputs.salesTax) || 0;
+                    const includeTaxesFees = !!inputs.includeTaxesFees;
+
+                    // Calculate loan amount
+                    let loanAmount = landPrice - downPayment;
+                    // Calculate sales tax
+                    const taxAmount = salesTax > 0 ? (landPrice - downPayment) * (salesTax / 100) : 0;
+                    // Add fees/taxes if included
+                    let financedAmount = loanAmount;
+                    if (includeTaxesFees) {
+                        financedAmount += fees + taxAmount;
+                    }
+
+                    // Determine periods per year
+                    const freqMap = { 'Monthly': 12, 'Quarterly': 4, 'Annually': 1 };
+                    const periodsPerYear = freqMap[paymentFrequency] || 12;
+                    const compoundingPerYear = freqMap[compounding] || 12;
+                    const n = loanTermYears * periodsPerYear;
+
+                    // Adjust interest rate for compounding/payment frequency
+                    let periodicRate = 0;
+                    if (compoundingPerYear === periodsPerYear) {
+                        periodicRate = interestRate / 100 / periodsPerYear;
+                    } else {
+                        // Convert APR to effective rate for payment period
+                        periodicRate = Math.pow(1 + interestRate / 100 / compoundingPerYear, compoundingPerYear / periodsPerYear) - 1;
+                    }
+
+                    // Monthly payment calculation (standard amortization)
+                    let payment = 0;
+                    if (periodicRate > 0) {
+                        payment = (financedAmount * periodicRate * Math.pow(1 + periodicRate, n)) /
+                            (Math.pow(1 + periodicRate, n) - 1);
+                    } else {
+                        payment = financedAmount / n;
+                    }
+
+                    // Amortization table
+                    let balance = financedAmount;
+                    const tableData = [];
+                    const graphData = [];
+                    let totalInterest = 0;
+                    let totalPayment = 0;
+                    for (let i = 1; i <= n; i++) {
+                        const interest = balance * periodicRate;
+                        const principal = payment - interest;
+                        balance -= principal;
+                        totalInterest += interest;
+                        totalPayment += payment;
+                        tableData.push({
+                            period: i,
+                            payment: payment,
+                            principal: principal,
+                            interest: interest,
+                            balance: Math.max(balance, 0)
+                        });
+                        graphData.push({ period: i, balance: Math.max(balance, 0) });
+                    }
+
+                    return {
+                        mainText: `Payment per Period: $${payment.toFixed(2)} | Total Interest: $${totalInterest.toFixed(2)} | Total Payment: $${totalPayment.toFixed(2)}`,
+                        tableData,
+                        graphData
+                    };
                 }
             },
             {
                 id: 'mobile-home-loan',
                 name: 'Mobile Home Loan Calculator',
-                description: 'Calculate mobile home loan payments and terms',
+                description: 'Calculate mobile home loan payments, interest, and payoff schedule',
                 icon: 'HomeIcon',
+                supportsGraph: true,
+                supportsTable: true,
                 inputs: [
                     { id: 'homePrice', label: 'Home Price ($)', type: 'number', required: true },
-                    { id: 'homeDownPayment', label: 'Down Payment ($)', type: 'number', required: true },
-                    { id: 'homeInterestRate', label: 'Interest Rate (%)', type: 'number', required: true },
-                    { id: 'homeTerm', label: 'Loan Term (years)', type: 'number', required: true }
+                    { id: 'downPayment', label: 'Down Payment ($)', type: 'number', required: false },
+                    { id: 'loanTerm', label: 'Loan Term (years)', type: 'number', required: true },
+                    { id: 'interestRate', label: 'Interest Rate (% APR)', type: 'number', required: true },
+                    { id: 'compounding', label: 'Compounding Frequency', type: 'select', options: ['Monthly', 'Quarterly', 'Annually'], required: false, default: 'Monthly' },
+                    { id: 'paymentFrequency', label: 'Payment Frequency', type: 'select', options: ['Monthly', 'Quarterly', 'Annually'], required: false, default: 'Monthly' },
+                    { id: 'fees', label: 'Title, Registration, and Other Fees ($)', type: 'number', required: false },
+                    { id: 'salesTax', label: 'Sales Tax (%)', type: 'number', required: false },
+                    { id: 'includeTaxesFees', label: 'Include taxes and fees in loan', type: 'checkbox', required: false }
                 ],
                 calculate: (inputs) => {
-                    const { homePrice, homeDownPayment, homeInterestRate, homeTerm } = inputs;
-                    const homeLoanAmount = homePrice - homeDownPayment;
-                    const homeMonthlyRate = homeInterestRate / 100 / 12;
-                    const homeMonthlyPayment = (homeLoanAmount * homeMonthlyRate * Math.pow(1 + homeMonthlyRate, homeTerm * 12)) /
-                        (Math.pow(1 + homeMonthlyRate, homeTerm * 12) - 1);
-                    return `Monthly Payment: $${homeMonthlyPayment.toFixed(2)}`;
+                    const homePrice = Number(inputs.homePrice) || 0;
+                    const downPayment = Number(inputs.downPayment) || 0;
+                    const loanTermYears = Number(inputs.loanTerm) || 0;
+                    const interestRate = Number(inputs.interestRate) || 0;
+                    const compounding = inputs.compounding || 'Monthly';
+                    const paymentFrequency = inputs.paymentFrequency || 'Monthly';
+                    const fees = Number(inputs.fees) || 0;
+                    const salesTax = Number(inputs.salesTax) || 0;
+                    const includeTaxesFees = !!inputs.includeTaxesFees;
+
+                    // Calculate loan amount
+                    let loanAmount = homePrice - downPayment;
+                    // Calculate sales tax
+                    const taxAmount = salesTax > 0 ? (homePrice - downPayment) * (salesTax / 100) : 0;
+                    // Add fees/taxes if included
+                    let financedAmount = loanAmount;
+                    if (includeTaxesFees) {
+                        financedAmount += fees + taxAmount;
+                    }
+
+                    // Determine periods per year
+                    const freqMap = { 'Monthly': 12, 'Quarterly': 4, 'Annually': 1 };
+                    const periodsPerYear = freqMap[paymentFrequency] || 12;
+                    const compoundingPerYear = freqMap[compounding] || 12;
+                    const n = loanTermYears * periodsPerYear;
+
+                    // Adjust interest rate for compounding/payment frequency
+                    let periodicRate = 0;
+                    if (compoundingPerYear === periodsPerYear) {
+                        periodicRate = interestRate / 100 / periodsPerYear;
+                    } else {
+                        // Convert APR to effective rate for payment period
+                        periodicRate = Math.pow(1 + interestRate / 100 / compoundingPerYear, compoundingPerYear / periodsPerYear) - 1;
+                    }
+
+                    // Payment calculation (standard amortization)
+                    let payment = 0;
+                    if (periodicRate > 0) {
+                        payment = (financedAmount * periodicRate * Math.pow(1 + periodicRate, n)) /
+                            (Math.pow(1 + periodicRate, n) - 1);
+                    } else {
+                        payment = financedAmount / n;
+                    }
+
+                    // Amortization table
+                    let balance = financedAmount;
+                    const tableData = [];
+                    const graphData = [];
+                    let totalInterest = 0;
+                    let totalPayment = 0;
+                    for (let i = 1; i <= n; i++) {
+                        const interest = balance * periodicRate;
+                        const principal = payment - interest;
+                        balance -= principal;
+                        totalInterest += interest;
+                        totalPayment += payment;
+                        tableData.push({
+                            period: i,
+                            payment: payment,
+                            principal: principal,
+                            interest: interest,
+                            balance: Math.max(balance, 0)
+                        });
+                        graphData.push({ period: i, balance: Math.max(balance, 0) });
+                    }
+
+                    return {
+                        mainText: `Payment per Period: $${payment.toFixed(2)} | Total Interest: $${totalInterest.toFixed(2)} | Total Payment: $${totalPayment.toFixed(2)}`,
+                        tableData,
+                        graphData
+                    };
                 }
             },
             {
                 id: 'future-value',
                 name: 'Future Value Calculator',
-                description: 'Calculate the future value of investments',
+                description: 'Calculate the future value of investments or savings with optional regular contributions',
                 icon: 'ChartPieIcon',
                 supportsGraph: true,
                 supportsTable: true,
                 inputs: [
                     { id: 'presentValue', label: 'Present Value ($)', type: 'number', required: true },
-                    { id: 'futureInterestRate', label: 'Interest Rate (%)', type: 'number', required: true },
-                    { id: 'futureYears', label: 'Number of Years', type: 'number', required: true }
+                    { id: 'interestRate', label: 'Interest Rate (% APR)', type: 'number', required: true },
+                    { id: 'years', label: 'Number of Years', type: 'number', required: true },
+                    { id: 'compounding', label: 'Compounding Frequency', type: 'select', options: ['Annually', 'Semi-annually', 'Quarterly', 'Monthly'], required: false, default: 'Annually' },
+                    { id: 'payment', label: 'Payment per Period ($)', type: 'number', required: false },
+                    { id: 'paymentTiming', label: 'Payment Timing', type: 'select', options: ['End', 'Beginning'], required: false, default: 'End' }
                 ],
                 calculate: (inputs) => {
-                    const { presentValue, futureInterestRate, futureYears } = inputs;
-                    const futureValue = presentValue * Math.pow(1 + futureInterestRate / 100, futureYears);
-                    const graphData = Array.from({ length: futureYears + 1 }, (_, year) => ({
-                        year,
-                        value: presentValue * Math.pow(1 + futureInterestRate / 100, year)
-                    }));
-                    const tableData = graphData;
+                    const presentValue = Number(inputs.presentValue) || 0;
+                    const interestRate = Number(inputs.interestRate) || 0;
+                    const years = Number(inputs.years) || 0;
+                    const compounding = inputs.compounding || 'Annually';
+                    const payment = Number(inputs.payment) || 0;
+                    const paymentTiming = inputs.paymentTiming || 'End';
+
+                    // Compounding periods per year
+                    const freqMap = { 'Annually': 1, 'Semi-annually': 2, 'Quarterly': 4, 'Monthly': 12 };
+                    const n = freqMap[compounding] || 1;
+                    const totalPeriods = years * n;
+                    const r = interestRate / 100 / n;
+
+                    // Future value calculation
+                    let fv = presentValue * Math.pow(1 + r, totalPeriods);
+                    if (payment > 0) {
+                        // If payment at beginning, multiply by (1 + r)
+                        const factor = paymentTiming === 'Beginning' ? (1 + r) : 1;
+                        fv += payment * factor * (Math.pow(1 + r, totalPeriods) - 1) / r;
+                    }
+
+                    // Table and graph data
+                    const tableData = [];
+                    const graphData = [];
+                    let runningValue = presentValue;
+                    for (let i = 1; i <= totalPeriods; i++) {
+                        if (payment > 0 && paymentTiming === 'Beginning') {
+                            runningValue += payment;
+                        }
+                        runningValue *= (1 + r);
+                        if (payment > 0 && paymentTiming === 'End') {
+                            runningValue += payment;
+                        }
+                        tableData.push({
+                            period: i,
+                            value: runningValue
+                        });
+                        graphData.push({ period: i, value: runningValue });
+                    }
+
                     return {
-                        mainText: `Future Value: $${futureValue.toFixed(2)}`,
-                        graphData,
-                        tableData
+                        mainText: `Future Value: $${fv.toFixed(2)}`,
+                        tableData,
+                        graphData
                     };
                 }
             },
@@ -153,16 +425,33 @@ export const calculatorCategories = [
                 name: 'Copart Fee Calculator',
                 description: 'Calculate Copart auction fees and total costs',
                 icon: 'TagIcon',
+                supportsTable: true,
                 inputs: [
-                    { id: 'bidAmount', label: 'Bid Amount ($)', type: 'number', required: true },
-                    { id: 'buyerFee', label: 'Buyer Fee ($)', type: 'number', required: true },
-                    { id: 'gatePass', label: 'Gate Pass ($)', type: 'number', required: true }
+                    { id: 'purchasePrice', label: 'Purchase price', type: 'number', required: true },
+                    { id: 'licenseType', label: 'License type', type: 'select', options: ['Non-licensed', 'Licensed'], required: true },
+                    { id: 'tier', label: 'Tier', type: 'select', options: ['Less', 'More'], required: false, dependsOn: { licenseType: 'Licensed' } },
+                    { id: 'vehicleType', label: 'Vehicle type', type: 'select', options: ['Standard', 'Heavy'], required: true },
+                    { id: 'titleType', label: 'Title type', type: 'select', options: ['Clean', 'Non-clean'], required: true },
+                    { id: 'paymentMethod', label: 'Payment method', type: 'select', options: ['Secured', 'Unsecured', 'Copart-affiliated third party financing'], required: true },
+                    { id: 'bidType', label: 'Bid type', type: 'select', options: ['Pre-bid', 'Live'], required: true },
+                    { id: 'copartStorageFee', label: 'Copart storage fee', type: 'number', required: false, help: "Storage rates vary by location. Check Copart's locations page and fill in the correct storage fee." },
+                    { id: 'latePayment', label: 'Late payment?', type: 'select', options: ['No', 'Yes'], required: true },
+                    { id: 'salesTax', label: 'Sales tax (%)', type: 'number', required: false },
+                    { id: 'otherGovFees', label: 'Other government fees', type: 'number', required: false, help: 'For all other government charges and fees such as Imposed Transaction, etc.' },
+                    { id: 'usingBroker', label: 'Using a broker?', type: 'select', options: ['No', 'Yes'], required: true, help: 'Each state has different licensing requirements' },
+                    { id: 'numBrokerFees', label: 'No. of broker fees', type: 'select', options: ['1', '2', '3', '4', '5'], required: false, dependsOn: { usingBroker: 'Yes' }, help: 'Transaction fee, broker fee, documentation fee, etc' },
+                    // Broker fee fields (conditionally shown)
+                    { id: 'brokerFee1Method', label: 'Broker fee 1 calculation method', type: 'select', options: ['$ Fixed amount', '% of purchase price'], required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['1', '2', '3', '4', '5'] } },
+                    { id: 'brokerFee1Amount', label: 'Broker fee 1 amount', type: 'number', required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['1', '2', '3', '4', '5'] } },
+                    { id: 'brokerFee2Method', label: 'Broker fee 2 calculation method', type: 'select', options: ['$ Fixed amount', '% of purchase price'], required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['2', '3', '4', '5'] } },
+                    { id: 'brokerFee2Amount', label: 'Broker fee 2 amount', type: 'number', required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['2', '3', '4', '5'] } },
+                    { id: 'brokerFee3Method', label: 'Broker fee 3 calculation method', type: 'select', options: ['$ Fixed amount', '% of purchase price'], required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['3', '4', '5'] } },
+                    { id: 'brokerFee3Amount', label: 'Broker fee 3 amount', type: 'number', required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['3', '4', '5'] } },
+                    { id: 'brokerFee4Method', label: 'Broker fee 4 calculation method', type: 'select', options: ['$ Fixed amount', '% of purchase price'], required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['4', '5'] } },
+                    { id: 'brokerFee4Amount', label: 'Broker fee 4 amount', type: 'number', required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['4', '5'] } },
+                    { id: 'brokerFee5Method', label: 'Broker fee 5 calculation method', type: 'select', options: ['$ Fixed amount', '% of purchase price'], required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['5'] } },
+                    { id: 'brokerFee5Amount', label: 'Broker fee 5 amount', type: 'number', required: false, dependsOn: { usingBroker: 'Yes', numBrokerFees: ['5'] } },
                 ],
-                calculate: (inputs) => {
-                    const { bidAmount, buyerFee, gatePass } = inputs;
-                    const totalFee = Number(bidAmount) + Number(buyerFee) + Number(gatePass);
-                    return `Total Cost: $${totalFee.toFixed(2)}`;
-                }
             },
             {
                 id: 'cash-back',
@@ -320,22 +609,7 @@ export const calculatorCategories = [
                 calculate: (inputs) => {
                     const { power, powerWeight } = inputs;
                     const ratio = power / powerWeight;
-                    return `Power to Weight Ratio: ${ratio.toFixed(2)} W/kg`;
-                }
-            },
-            {
-                id: 'playback-speed',
-                name: 'Playback Speed Calculator',
-                description: 'Calculate video and audio playback speeds',
-                icon: 'ClockIcon',
-                inputs: [
-                    { id: 'originalDuration', label: 'Original Duration (minutes)', type: 'number', required: true },
-                    { id: 'playbackSpeed', label: 'Playback Speed (x)', type: 'number', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { originalDuration, playbackSpeed } = inputs;
-                    const newDuration = originalDuration / playbackSpeed;
-                    return `New Duration: ${newDuration.toFixed(2)} minutes`;
+                    return `Power to Weight Ratio: ${ratio.toFixed(2)}`;
                 }
             }
         ]
@@ -346,191 +620,55 @@ export const calculatorCategories = [
         description: 'Tools for daily life calculations',
         icon: 'CalendarIcon',
         calculators: [
-            {
-                id: 'ap-score',
-                name: 'AP Score Calculator',
-                description: 'Calculate AP exam scores and predictions',
-                icon: 'DocumentTextIcon',
-                inputs: [
-                    { id: 'mcScore', label: 'Multiple Choice Score (%)', type: 'number', required: true },
-                    { id: 'frqScore', label: 'Free Response Score (%)', type: 'number', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { mcScore, frqScore } = inputs;
-                    const apScore = (mcScore * 0.6) + (frqScore * 0.4);
-                    return `AP Score: ${apScore.toFixed(1)}`;
-                }
-            },
-            {
-                id: 'infinite-campus-grade',
-                name: 'Infinite Campus Grade Calculator',
-                description: 'Calculate grades using Infinite Campus system',
-                icon: 'ChartBarIcon',
-                inputs: [
-                    { id: 'assignments', label: 'Number of Assignments', type: 'number', required: true },
-                    { id: 'weights', label: 'Weight per Assignment (%)', type: 'number', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { assignments, weights } = inputs;
-                    const weightedGrade = assignments * weights;
-                    return `Final Grade: ${weightedGrade.toFixed(2)}%`;
-                }
-            },
-            {
-                id: 'anniversary',
-                name: 'Anniversary Calculator',
-                description: 'Calculate anniversary dates and milestones',
-                icon: 'GiftIcon',
-                inputs: [
-                    { id: 'startDate', label: 'Start Date', type: 'date', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { startDate } = inputs;
-                    const today = new Date();
-                    const anniversary = new Date(startDate);
-                    const anniversaryYears = today.getFullYear() - anniversary.getFullYear();
-                    return `Years Together: ${anniversaryYears} years`;
-                }
-            },
-            {
-                id: 'half-birthday',
-                name: 'Half Birthday Calculator',
-                description: 'Calculate half birthday dates',
-                icon: 'SparklesIcon',
-                inputs: [
-                    { id: 'birthDate', label: 'Birth Date', type: 'date', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { birthDate } = inputs;
-                    const halfBirthday = new Date(birthDate);
-                    halfBirthday.setMonth(halfBirthday.getMonth() + 6);
-                    return `Half Birthday: ${halfBirthday.toLocaleDateString()}`;
-                }
-            },
-            {
-                id: 'snowday',
-                name: 'Snowday Calculator',
-                description: 'Calculate probability of snow days',
-                icon: 'CloudIcon',
-                inputs: [
-                    { id: 'temperature', label: 'Temperature (°F)', type: 'number', required: true },
-                    { id: 'precipitation', label: 'Precipitation (inches)', type: 'number', required: true },
-                    { id: 'windSpeed', label: 'Wind Speed (mph)', type: 'number', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { temperature, precipitation, windSpeed } = inputs;
-                    const snowProbability = (temperature < 32 && precipitation > 0.1) ?
-                        Math.min(100, (32 - temperature) * 10 + (precipitation * 50) + (windSpeed * 5)) : 0;
-                    return `Snow Day Probability: ${snowProbability.toFixed(1)}%`;
-                }
-            },
-            {
-                id: 'heater-btu',
-                name: 'Heater BTU Calculator',
-                description: 'Calculate required BTU for heating spaces',
-                icon: 'FireIcon',
-                inputs: [
-                    { id: 'roomSize', label: 'Room Size (sq ft)', type: 'number', required: true },
-                    { id: 'insulation', label: 'Insulation Quality', type: 'select', options: ['Poor', 'Average', 'Good'], required: true },
-                    { id: 'climate', label: 'Climate', type: 'select', options: ['Mild', 'Moderate', 'Cold'], required: true }
-                ],
-                calculate: (inputs) => {
-                    const { roomSize, insulation, climate } = inputs;
-                    const insulationMultiplier = { 'Poor': 1.2, 'Average': 1.0, 'Good': 0.8 };
-                    const climateMultiplier = { 'Mild': 0.8, 'Moderate': 1.0, 'Cold': 1.2 };
-                    const btu = roomSize * 20 * insulationMultiplier[insulation] * climateMultiplier[climate];
-                    return `Required BTU: ${btu.toFixed(0)}`;
-                }
-            }
+            // AP score calculator
+            // Infinite Campus grade calculator
+            // Anniversary calculator
+            // Half birthday calculator
+            // Snowday calculator
+            // Heater BTU calculator
         ]
     },
     {
         id: 'other',
         name: 'Other Calculators',
-        description: 'Miscellaneous calculation tools',
-        icon: 'WrenchIcon',
+        description: 'Miscellaneous calculators',
+        icon: 'GiftIcon',
         calculators: [
-            {
-                id: 'blox-fruits-trade',
-                name: 'Blox Fruits Trade Calculator',
-                description: 'Calculate Blox Fruits trading values',
-                icon: 'ArrowPathIcon',
-                inputs: [
-                    { id: 'fruit1', label: 'Your Fruit', type: 'select', options: ['Dragon', 'Leopard', 'Mammoth'], required: true },
-                    { id: 'fruit2', label: 'Their Fruit', type: 'select', options: ['Dragon', 'Leopard', 'Mammoth'], required: true }
-                ],
-                calculate: (inputs) => {
-                    const { fruit1, fruit2 } = inputs;
-                    const fruitValues = {
-                        'Dragon': 3500000,
-                        'Leopard': 3000000,
-                        'Mammoth': 2500000
-                    };
-                    const tradeValue = Math.abs(fruitValues[fruit1] - fruitValues[fruit2]);
-                    return `Trade Value Difference: ${tradeValue.toLocaleString()} Beli`;
-                }
-            },
-            {
-                id: 'horse-color',
-                name: 'Horse Color Calculator',
-                description: 'Calculate horse color genetics',
-                icon: 'PaintBrushIcon',
-                inputs: [
-                    { id: 'baseColor', label: 'Base Color', type: 'select', options: ['Bay', 'Black', 'Chestnut', 'Gray'], required: true },
-                    { id: 'pattern', label: 'Pattern', type: 'select', options: ['Solid', 'Tobiano', 'Overo', 'Appaloosa'], required: true }
-                ],
-                calculate: (inputs) => {
-                    const { baseColor, pattern } = inputs;
-                    return `Horse Color: ${baseColor} with ${pattern} pattern`;
-                }
-            },
-            {
-                id: 'asphalt',
-                name: 'Asphalt Calculator',
-                description: 'Calculate asphalt requirements for projects',
-                icon: 'BuildingOfficeIcon',
-                inputs: [
-                    { id: 'asphaltArea', label: 'Area (sq ft)', type: 'number', required: true },
-                    { id: 'thickness', label: 'Thickness (inches)', type: 'number', required: true }
-                ],
-                calculate: (inputs) => {
-                    const { asphaltArea, thickness } = inputs;
-                    const asphaltNeeded = asphaltArea * thickness * 145; // 145 lbs per cubic foot
-                    return `Asphalt Needed: ${asphaltNeeded.toFixed(0)} lbs`;
-                }
-            }
+            // Blox Fruits trade calculator
+            // Horse color calculator
+            // asphalt calculator
         ]
     }
 ];
 
 export const iconMap = {
-    'AcademicCapIcon': AcademicCapIcon,
-    'BanknotesIcon': BanknotesIcon,
-    'HeartIcon': HeartIcon,
-    'CalendarIcon': CalendarIcon,
-    'WrenchIcon': WrenchIcon,
-    'CalculatorIcon': CalculatorIcon,
-    'ChartBarIcon': ChartBarIcon,
-    'BeakerIcon': BeakerIcon,
-    'ScaleIcon': ScaleIcon,
-    'CurrencyDollarIcon': CurrencyDollarIcon,
-    'ClockIcon': ClockIcon,
-    'UserGroupIcon': UserGroupIcon,
-    'HomeIcon': HomeIcon,
-    'TruckIcon': TruckIcon,
-    'GlobeAltIcon': GlobeAltIcon,
-    'SunIcon': SunIcon,
-    'BoltIcon': BoltIcon,
-    'CubeIcon': CubeIcon,
-    'ChartPieIcon': ChartPieIcon,
-    'DocumentTextIcon': DocumentTextIcon,
-    'ArrowPathIcon': ArrowPathIcon,
-    'FireIcon': FireIcon,
-    'BuildingOfficeIcon': BuildingOfficeIcon,
-    'GiftIcon': GiftIcon,
-    'SparklesIcon': SparklesIcon,
-    'CloudIcon': CloudIcon,
-    'TagIcon': TagIcon,
-    'PaintBrushIcon': PaintBrushIcon,
-    'WrenchScrewdriverIcon': WrenchScrewdriverIcon
+    AcademicCapIcon,
+    BanknotesIcon,
+    HeartIcon,
+    CalendarIcon,
+    WrenchIcon,
+    CalculatorIcon,
+    ChartBarIcon,
+    BeakerIcon,
+    ScaleIcon,
+    CurrencyDollarIcon,
+    ClockIcon,
+    UserGroupIcon,
+    HomeIcon,
+    TruckIcon,
+    GlobeAltIcon,
+    SunIcon,
+    BoltIcon,
+    CubeIcon,
+    ChartPieIcon,
+    DocumentTextIcon,
+    ArrowPathIcon,
+    FireIcon,
+    BuildingOfficeIcon,
+    GiftIcon,
+    SparklesIcon,
+    CloudIcon,
+    TagIcon,
+    PaintBrushIcon,
+    WrenchScrewdriverIcon
 };

@@ -14,13 +14,13 @@ export default function CalculatorPage({ params }) {
     if (!calculator) notFound();
 
     return (
-        <div className="min-h-screen py-12">
+        <div className="min-h-screen py-5">
             <div className="max-w-9xl mx-auto px-3 sm:px-4 lg:px-6">
-                <div className="text-center mb-12">
+                <div className="text-center mb-5">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">
                         {calculator.name}
                     </h1>
-                    <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                    <p className="text-md text-gray-600 max-w-2xl mx-auto">
                         {calculator.description}
                     </p>
                 </div>

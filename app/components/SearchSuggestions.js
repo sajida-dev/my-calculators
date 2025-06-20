@@ -67,10 +67,12 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
     };
 
     const handleSuggestionClick = (calculator) => {
+        alert('Clicked!');
+        console.log('handle suggestion click', calculator)
         setSearchTerm(calculator.name);
         setShowSuggestions(false);
         const url = `/categories/${calculator.categoryId}/${calculator.id}`;
-        window.location.href = url;
+        // window.location.href = url;
     };
 
     return (
