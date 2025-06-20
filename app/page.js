@@ -4,7 +4,8 @@ import {
   BanknotesIcon,
   HeartIcon,
   CalendarIcon,
-  WrenchIcon
+  WrenchIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 import SearchSuggestions from './components/SearchSuggestions';
 import CategoryCard from './components/CategoryCard';
@@ -15,7 +16,8 @@ const iconMap = {
   'BanknotesIcon': BanknotesIcon,
   'HeartIcon': HeartIcon,
   'CalendarIcon': CalendarIcon,
-  'WrenchIcon': WrenchIcon
+  'WrenchIcon': WrenchIcon,
+  'CalculatorIcon': CalculatorIcon
 };
 
 export default function Home() {

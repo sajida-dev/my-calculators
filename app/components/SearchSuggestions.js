@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { calculatorCategories } from '@/app/data/calculators';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import Portal from './Portal';
+import { useRouter } from 'next/navigation';
 
 export default function SearchSuggestions({ className = '', placeholder = 'Search calculators...' }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +13,7 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
     const inputRef = useRef(null);
+    const router = useRouter();
 
     // Get all calculators from all categories
     const allCalculators = calculatorCategories.flatMap(category =>
@@ -67,6 +69,8 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
     const handleSuggestionClick = (calculator) => {
         setSearchTerm(calculator.name);
         setShowSuggestions(false);
+        const url = `/categories/${calculator.categoryId}/${calculator.id}`;
+        window.location.href = url;
     };
 
     return (
@@ -103,10 +107,11 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
                 <Portal>
                     <div style={dropdownStyle} className="bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto">
                         {suggestions.map((calculator) => (
-                            <Link
+                            <button
                                 key={`${calculator.categoryId}-${calculator.id}`}
-                                href={`/categories/${calculator.categoryId}/${calculator.id}`}
+                                type="button"
                                 onClick={() => handleSuggestionClick(calculator)}
+                                className="w-full text-left"
                             >
                                 <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150">
                                     <div className="flex items-center justify-between">
@@ -118,7 +123,7 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
                                         </span>
                                     </div>
                                 </div>
-                            </Link>
+                            </button>
                         ))}
                     </div>
                 </Portal>
@@ -132,4 +137,4 @@ export default function SearchSuggestions({ className = '', placeholder = 'Searc
             )}
         </div>
     );
-} 
+}
