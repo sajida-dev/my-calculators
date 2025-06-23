@@ -14,7 +14,7 @@ export default function Hero() {
                     <p className="mt-6 max-w-2xl mx-auto text-xl text-blue-100 drop-shadow-[0_0_10px_rgba(30,64,175,0.7)] sm:text-2xl transition-colors duration-300 hover:text-blue-200">
                         Access a wide range of calculators for education, finance, health, and more.
                     </p>
-                    <div className="relative mt-8 max-w-xl mx-auto">
+                    <div className="relative mt-8 max-w-xl mx-auto z-50">
                         <SearchSuggestions
                             className="w-full"
                             placeholder="Search for calculators..."
